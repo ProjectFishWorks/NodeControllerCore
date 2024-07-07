@@ -24,8 +24,11 @@ private:
 
     //Pattern from:
     //https://stackoverflow.com/questions/45831114/c-freertos-task-invalid-use-of-non-static-member-function
-    static void start_rx_task_impl(void* _this);
+    static void start_receive_to_rx_queue_task(void* _this);
     void receive_to_rx_queue();
+
+    static void start_rx_queue_event_task(void* _this);
+    void rx_queue_event();
     
     QueueHandle_t tx_queue;
 
@@ -37,6 +40,6 @@ public:
     bool debug;
 
     NodeControllerCore();
-    bool Init(bool debug, std::function<void(uint32_t id, uint64_t data)> onMessageReceived);
+    bool Init(std::function<void(uint32_t id, uint64_t data)> onMessageReceived);
     void sendMessage(uint32_t id, uint64_t *data);
 };

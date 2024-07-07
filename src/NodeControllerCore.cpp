@@ -10,11 +10,10 @@ twai_message_t NodeControllerCore::create_message(uint32_t id, uint64_t *data) {
   message.identifier = id;
   message.data_length_code = 8;
   memcpy(message.data, data, 8);
-
   return message;
 }
 
-bool NodeControllerCore::Init(bool debug, std::function<void(uint32_t id, uint64_t data)> onMessageReceived)
+bool NodeControllerCore::Init(std::function<void(uint32_t id, uint64_t data)> onMessageReceived)
 {
   this->debug = debug;
   this->onMessageReceived = onMessageReceived;
@@ -55,14 +54,19 @@ bool NodeControllerCore::Init(bool debug, std::function<void(uint32_t id, uint64
 
   rx_queue = xQueueCreate(RX_QUEUE_LENGTH, sizeof(twai_message_t));
 
-  auto temp = this->onMessageReceived;
-
   //Create task to receive messages to rx_queue
-  xTaskCreate(this->start_rx_task_impl, 
+  xTaskCreate(this->start_receive_to_rx_queue_task, 
               "start_rx_task_impl", 
               2048, 
               this, 
-              1, 
+              10, 
+              NULL);
+
+  xTaskCreate(this->start_rx_queue_event_task, 
+              "start_rx_queue_event_task_impl", 
+              2048, 
+              this, 
+              20, 
               NULL);
 
   //Create task to transmit messages from tx_queue
@@ -70,7 +74,7 @@ bool NodeControllerCore::Init(bool debug, std::function<void(uint32_t id, uint64
               "transmit_tx_queue", 
               2048, 
               &tx_queue, 
-              4, 
+              30, 
               NULL);
 
 
@@ -95,7 +99,7 @@ void NodeControllerCore::transmit_tx_queue(void *queue) {
   }
 }
 
-void NodeControllerCore::start_rx_task_impl(void* _this) {
+void NodeControllerCore::start_receive_to_rx_queue_task(void* _this) {
   ((NodeControllerCore*)_this)->receive_to_rx_queue();
 }
 
@@ -138,14 +142,27 @@ void NodeControllerCore::receive_to_rx_queue() {
       receive = twai_receive(&message, RX_TX_BLOCK_TIME);
 
       if (receive == ESP_OK) {
-        uint64_t data = 0;
-        memcpy(&data, message.data, 8);
-        this->onMessageReceived(message.identifier, data);
-        //xQueueSend(*(QueueHandle_t *) queue, &message, 0);
+        xQueueSend(this->rx_queue, &message, 0);
       } else if(receive == ESP_ERR_INVALID_STATE || receive == ESP_ERR_INVALID_ARG) {
         Serial.println("Failed to receive message");
       }
     } while (receive != ESP_ERR_TIMEOUT);
+  }
+}
+
+void NodeControllerCore::start_rx_queue_event_task(void* _this) {
+  ((NodeControllerCore*)_this)->rx_queue_event();
+}
+
+void NodeControllerCore::rx_queue_event() {
+  twai_message_t message;
+
+  while(1){
+    if(xQueueReceive(rx_queue, &message, RX_TX_BLOCK_TIME) == pdTRUE){
+      uint64_t data = 0;
+      memcpy(&data, message.data, 8);
+      this->onMessageReceived(message.identifier, data);
+    }
   }
 }
 
