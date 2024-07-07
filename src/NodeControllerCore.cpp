@@ -1,8 +1,4 @@
-#include "driver/twai.h"
-
-// Pins used to connect to CAN bus transceiver:
-#define RX_PIN 6
-#define TX_PIN 7
+#include <NodeControllerCore.h>
 
 class NodeControllerCore
 {
