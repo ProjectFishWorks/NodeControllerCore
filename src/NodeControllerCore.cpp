@@ -1,7 +1,6 @@
 #include <NodeControllerCore.h>
 
-void NodeControllerCore::NodeControllerCore(bool debug = false) {
-  this.debug = debug;
+NodeControllerCore::NodeControllerCore(){
 }
 
 twai_message_t NodeControllerCore::create_message(uint32_t id, uint64_t *data) {
@@ -15,8 +14,11 @@ twai_message_t NodeControllerCore::create_message(uint32_t id, uint64_t *data) {
   return message;
 }
 
-bool NodeControllerCore::Init()
+bool NodeControllerCore::Init(bool debug, std::function<void(uint32_t id, uint64_t data)> onMessageReceived)
 {
+  this->debug = debug;
+  this->onMessageReceived = onMessageReceived;
+
     // Initialize configuration structures using macro initializers
   twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT((gpio_num_t)TX_PIN, 
                                                               (gpio_num_t)RX_PIN,
@@ -26,47 +28,49 @@ bool NodeControllerCore::Init()
 
   // Install TWAI driver
   if (twai_driver_install(&g_config, &t_config, &f_config) == ESP_OK) {
-    if(debug)Serial.println("Driver installed");
+    Serial.println("Driver installed");
   } else {
-    if(debug)Serial.println("Failed to install driver");
+    Serial.println("Failed to install driver");
     return false;
   }
 
   // Start TWAI driver
   if (twai_start() == ESP_OK) {
-    if(debug)Serial.println("Driver started");
+    Serial.println("Driver started");
   } else {
-    if(debug)Serial.println("Failed to start driver");
+    Serial.println("Failed to start driver");
     return false;
   }
 
   // Reconfigure alerts to detect frame receive, Bus-Off error and RX queue full states
   uint32_t alerts_to_enable = TWAI_ALERT_RX_DATA | TWAI_ALERT_ERR_PASS | TWAI_ALERT_BUS_ERROR | TWAI_ALERT_RX_QUEUE_FULL | TWAI_ALERT_BUS_OFF;
   if (twai_reconfigure_alerts(alerts_to_enable, NULL) == ESP_OK) {
-    if(debug)Serial.println("CAN Alerts reconfigured");
+    Serial.println("CAN Alerts reconfigured");
   } else {
-    if(debug).println("Failed to reconfigure alerts");
+    Serial.println("Failed to reconfigure alerts");
     return false;
   }
 
   tx_queue = xQueueCreate(TX_QUEUE_LENGTH, sizeof(twai_message_t));
 
-  rx_queue = xQueueCreate(TX_QUEUE_LENGTH, sizeof(twai_message_t));
+  rx_queue = xQueueCreate(RX_QUEUE_LENGTH, sizeof(twai_message_t));
+
+  auto temp = this->onMessageReceived;
+
+  //Create task to receive messages to rx_queue
+  xTaskCreate(this->start_rx_task_impl, 
+              "start_rx_task_impl", 
+              2048, 
+              this, 
+              1, 
+              NULL);
 
   //Create task to transmit messages from tx_queue
-  xTaskCreate(transmit_tx_queue, 
+  xTaskCreate(&NodeControllerCore::transmit_tx_queue, 
               "transmit_tx_queue", 
               2048, 
               &tx_queue, 
               4, 
-              NULL);
-  
-  //Create task to receive messages to rx_queue
-  xTaskCreate(receive_to_rx_queue, 
-              "receive_to_rx_queue", 
-              2048, 
-              &rx_queue, 
-              1, 
               NULL);
 
 
@@ -82,18 +86,24 @@ void NodeControllerCore::transmit_tx_queue(void *queue) {
     if(xQueueReceive(*(QueueHandle_t *) queue, &message, RX_TX_BLOCK_TIME) == pdTRUE){
 
       if (twai_transmit(&message, 2000) == ESP_OK) {
-        if(debug)Serial.println("Message queued for transmission");
+        Serial.println("Message queued for transmission");
       } else {
-        if(debug)Serial.println("Failed to queue message for transmission");
+        Serial.println("Failed to queue message for transmission");
         delay(1000);
     }
     } 
   }
 }
 
-void NodeControllerCore::receive_to_rx_queue(void *queue) {
+void NodeControllerCore::start_rx_task_impl(void* _this) {
+  ((NodeControllerCore*)_this)->receive_to_rx_queue();
+}
+
+void NodeControllerCore::receive_to_rx_queue() {
 
   twai_message_t message;
+
+  Serial.println("Receive to rx queue task created");
 
   while(1){
 
@@ -105,25 +115,22 @@ void NodeControllerCore::receive_to_rx_queue(void *queue) {
 
     // Handle alerts
     if (alerts_triggered & TWAI_ALERT_ERR_PASS) {
-      if(debug)Serial.println("Alert: TWAI controller has become error passive.");
+      Serial.println("Alert: TWAI controller has become error passive.");
     }
     if (alerts_triggered & TWAI_ALERT_BUS_ERROR) {
-      if(debug){
-        Serial.println("Alert: A (Bit, Stuff, CRC, Form, ACK) error has occurred on the bus.");
-        Serial.printf("Bus error count: %d\n", twaistatus.bus_error_count);
-      }
+      Serial.println("Alert: A (Bit, Stuff, CRC, Form, ACK) error has occurred on the bus.");
+      Serial.printf("Bus error count: %d\n", twaistatus.bus_error_count);
+
     }
     if (alerts_triggered & TWAI_ALERT_RX_QUEUE_FULL) {
-      if(debug){
-        Serial.println("Alert: The RX queue is full causing a received frame to be lost.");
-        Serial.printf("RX buffered: %d\t", twaistatus.msgs_to_rx);
-        Serial.printf("RX missed: %d\t", twaistatus.rx_missed_count);
-        Serial.printf("RX overrun %d\n", twaistatus.rx_overrun_count);
-      }
+      Serial.println("Alert: The RX queue is full causing a received frame to be lost.");
+      Serial.printf("RX buffered: %d\t", twaistatus.msgs_to_rx);
+      Serial.printf("RX missed: %d\t", twaistatus.rx_missed_count);
+      Serial.printf("RX overrun %d\n", twaistatus.rx_overrun_count);
     }
 
     if (alerts_triggered & TWAI_ALERT_BUS_OFF) {
-      if(debug)Serial.println("Bus Off state");
+      Serial.println("Bus Off state");
     }
 
     bool receive = false;
@@ -131,11 +138,12 @@ void NodeControllerCore::receive_to_rx_queue(void *queue) {
       receive = twai_receive(&message, RX_TX_BLOCK_TIME);
 
       if (receive == ESP_OK) {
-        if(debug)Serial.println("Message received");
-        onMessageReceived(message.identifier, message.data);
+        uint64_t data = 0;
+        memcpy(&data, message.data, 8);
+        this->onMessageReceived(message.identifier, data);
         //xQueueSend(*(QueueHandle_t *) queue, &message, 0);
       } else if(receive == ESP_ERR_INVALID_STATE || receive == ESP_ERR_INVALID_ARG) {
-        if(debug)Serial.println("Failed to receive message");
+        Serial.println("Failed to receive message");
       }
     } while (receive != ESP_ERR_TIMEOUT);
   }
