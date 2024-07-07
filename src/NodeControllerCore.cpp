@@ -58,3 +58,4 @@ bool NodeControllerCore::Init()
     #endif
     return false;
 }
+}
