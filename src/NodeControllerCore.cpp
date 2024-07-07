@@ -1,13 +1,5 @@
 #include <NodeControllerCore.h>
 
-class NodeControllerCore
-{
-private:
-    /* data */
-public:
-    bool Init();
-};
-
 bool NodeControllerCore::Init()
 {
     // Initialize configuration structures using macro initializers
