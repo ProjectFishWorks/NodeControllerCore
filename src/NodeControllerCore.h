@@ -1,5 +1,6 @@
 #ifndef NodeControllerCore_H
 #define NodeControllerCore_H
+#endif
 
 #include <Arduino.h>
 #include "driver/twai.h"
