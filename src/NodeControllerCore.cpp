@@ -164,6 +164,7 @@ void NodeControllerCore::rx_queue_event() {
       uint16_t nodeID = 0;
       uint16_t messageID = 0;
       memcpy(&data, message.data, 8);
+      Serial.println(message.identifier, HEX);
       nodeID = message.identifier >> 15;
       messageID = message.identifier & 0x7FFF;
       this->onMessageReceived(nodeID,messageID, data);
@@ -173,6 +174,7 @@ void NodeControllerCore::rx_queue_event() {
 
 void NodeControllerCore::sendMessage(uint16_t messageID, uint64_t *data) {
   uint32_t id = (this->nodeID << 15) | messageID;
+  Serial.println(id, HEX);
   twai_message_t message = create_message(id, data);
   xQueueSend(tx_queue, &message, portMAX_DELAY);
 }
