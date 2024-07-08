@@ -41,7 +41,7 @@ public:
 
     NodeControllerCore();
     bool Init(std::function<void(uint16_t nodeID, uint16_t messageID, uint64_t data)> onMessageReceived, uint16_t nodeID);
-    void sendMessage(uint16_t nodeID, uint16_t messageID uint64_t *data);
+    void sendMessage(uint16_t messageID uint64_t *data);
 
     uint16_t nodeID;
 

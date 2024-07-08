@@ -168,8 +168,8 @@ void NodeControllerCore::rx_queue_event() {
   }
 }
 
-void NodeControllerCore::sendMessage(uint16_t nodeID, uint16_t messageID uint64_t *data) {
-  uint32_t id = (nodeID << 15) | messageID;
+void NodeControllerCore::sendMessage(uint16_t messageID, uint64_t *data) {
+  uint32_t id = (this->nodeID << 15) | messageID;
   twai_message_t message = create_message(id, data);
   xQueueSend(tx_queue, &message, portMAX_DELAY);
 }
