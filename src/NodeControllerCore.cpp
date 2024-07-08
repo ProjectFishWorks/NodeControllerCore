@@ -13,7 +13,7 @@ twai_message_t NodeControllerCore::create_message(uint32_t id, uint64_t *data) {
   return message;
 }
 
-bool NodeControllerCore::Init(std::function<void(uint32_t id, uint64_t data)> onMessageReceived)
+bool NodeControllerCore::Init(std::function<void(uint16_t nodeID, uint16_t messageID, uint64_t data)> onMessageReceived)
 {
   this->debug = debug;
   this->onMessageReceived = onMessageReceived;
@@ -161,12 +161,15 @@ void NodeControllerCore::rx_queue_event() {
     if(xQueueReceive(rx_queue, &message, RX_TX_BLOCK_TIME) == pdTRUE){
       uint64_t data = 0;
       memcpy(&data, message.data, 8);
-      this->onMessageReceived(message.identifier, data);
+      uint16_t nodeID = message.identifier >> 15;
+      uint16_t messageID = message.identifier & 0x7FFF;
+      this->onMessageReceived(nodeID,messageID, data);
     }
   }
 }
 
-void NodeControllerCore::sendMessage(uint32_t id, uint64_t *data) {
+void NodeControllerCore::sendMessage(uint16_t nodeID, uint16_t messageID uint64_t *data) {
+  uint32_t id = (nodeID << 15) | messageID;
   twai_message_t message = create_message(id, data);
   xQueueSend(tx_queue, &message, portMAX_DELAY);
 }
