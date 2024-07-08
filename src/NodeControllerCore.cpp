@@ -13,10 +13,11 @@ twai_message_t NodeControllerCore::create_message(uint32_t id, uint64_t *data) {
   return message;
 }
 
-bool NodeControllerCore::Init(std::function<void(uint16_t nodeID, uint16_t messageID, uint64_t data)> onMessageReceived)
+bool Init(std::function<void(uint16_t nodeID, uint16_t messageID, uint64_t data)> onMessageReceived, uint16_t nodeID)
 {
   this->debug = debug;
   this->onMessageReceived = onMessageReceived;
+  this->nodeID = nodeID;
 
     // Initialize configuration structures using macro initializers
   twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT((gpio_num_t)TX_PIN, 
