@@ -161,9 +161,11 @@ void NodeControllerCore::rx_queue_event() {
   while(1){
     if(xQueueReceive(rx_queue, &message, RX_TX_BLOCK_TIME) == pdTRUE){
       uint64_t data = 0;
+      uint16_t nodeID = 0;
+      uint16_t messageID = 0;
       memcpy(&data, message.data, 8);
-      uint16_t nodeID = message.identifier >> 15;
-      uint16_t messageID = message.identifier & 0x7FFF;
+      nodeID = message.identifier >> 15;
+      messageID = message.identifier & 0x7FFF;
       this->onMessageReceived(nodeID,messageID, data);
     }
   }
