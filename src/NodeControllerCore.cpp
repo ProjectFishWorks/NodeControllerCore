@@ -13,7 +13,7 @@ twai_message_t NodeControllerCore::create_message(uint32_t id, uint64_t *data) {
   return message;
 }
 
-bool Init(std::function<void(uint16_t nodeID, uint16_t messageID, uint64_t data)> onMessageReceived, uint16_t nodeID)
+bool NodeControllerCore::Init(std::function<void(uint16_t nodeID, uint16_t messageID, uint64_t data)> onMessageReceived, uint16_t nodeID)
 {
   this->debug = debug;
   this->onMessageReceived = onMessageReceived;
