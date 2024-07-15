@@ -34,15 +34,15 @@ private:
 
     QueueHandle_t rx_queue;
 
-    std::function<void(uint16_t nodeID, uint16_t messageID, uint64_t data)> onMessageReceived;
+    std::function<void(uint8_t nodeID, uint16_t messageID, uint64_t data)> onMessageReceived;
 
 public:
     bool debug;
 
     NodeControllerCore();
-    bool Init(std::function<void(uint16_t nodeID, uint16_t messageID, uint64_t data)> onMessageReceived, uint16_t nodeID);
+    bool Init(std::function<void(uint8_t nodeID, uint16_t messageID, uint64_t data)> onMessageReceived, uint8_t nodeID);
     void sendMessage(uint16_t messageID, uint64_t *data);
 
-    uint16_t nodeID = 0;
+    uint8_t nodeID = 0;
 
 };

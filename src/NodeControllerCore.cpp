@@ -13,7 +13,7 @@ twai_message_t NodeControllerCore::create_message(uint32_t id, uint64_t *data) {
   return message;
 }
 
-bool NodeControllerCore::Init(std::function<void(uint16_t nodeID, uint16_t messageID, uint64_t data)> onMessageReceived, uint16_t nodeID)
+bool NodeControllerCore::Init(std::function<void(uint8_t nodeID, uint16_t messageID, uint64_t data)> onMessageReceived, uint8_t nodeID)
 {
   this->debug = debug;
   this->onMessageReceived = onMessageReceived;
@@ -161,20 +161,34 @@ void NodeControllerCore::rx_queue_event() {
   while(1){
     if(xQueueReceive(rx_queue, &message, RX_TX_BLOCK_TIME) == pdTRUE){
       uint64_t data = 0;
-      uint16_t nodeID = 0;
+      uint8_t nodeID = 0;
       uint16_t messageID = 0;
       memcpy(&data, message.data, 8);
-      Serial.println(message.identifier, HEX);
-      nodeID = message.identifier >> 15;
-      messageID = message.identifier & 0x7FFF;
+      nodeID = message.identifier >> 21;
+      messageID = message.identifier >> 5;
+
+      Serial.print("Message received: ");
+      Serial.print("Node ID: ");
+      Serial.print(nodeID, HEX);
+      Serial.print(" Message ID: ");
+      Serial.print(messageID, HEX);
+      Serial.print(" Data: ");
+      Serial.println(data, HEX);
+
       this->onMessageReceived(nodeID,messageID, data);
     }
   }
 }
 
 void NodeControllerCore::sendMessage(uint16_t messageID, uint64_t *data) {
-  uint32_t id = (this->nodeID << 15) | messageID;
-  Serial.println(id, HEX);
+  uint32_t id = 0; 
+  id = ((this->nodeID << 24) | (messageID << 8)) >> 3;
+  Serial.print("Sending message with Node ID: ");
+  Serial.print(nodeID, HEX);
+  Serial.print(" Message ID: ");
+  Serial.print(messageID, HEX);
+  Serial.print(" Data: ");
+  Serial.println(*data, HEX);
   twai_message_t message = create_message(id, data);
   xQueueSend(tx_queue, &message, portMAX_DELAY);
 }
