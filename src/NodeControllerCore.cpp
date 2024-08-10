@@ -61,14 +61,14 @@ bool NodeControllerCore::Init(std::function<void(uint8_t nodeID, uint16_t messag
   //Start tasks
   xTaskCreate(this->start_receive_to_rx_queue_task, 
               "start_rx_task_impl", 
-              2048, 
+              10000, //TODO: Not sure what the stack size should be for this task, 10000 is just a guess, 2048 is default but causes stack overflow crashes in base station
               this, 
               10, 
               NULL);
 
   xTaskCreate(this->start_rx_queue_event_task, 
               "start_rx_queue_event_task_impl", 
-              2048, 
+              10000, 
               this, 
               20, 
               NULL);
@@ -76,7 +76,7 @@ bool NodeControllerCore::Init(std::function<void(uint8_t nodeID, uint16_t messag
   //Create task to transmit messages from tx_queue
   xTaskCreate(&NodeControllerCore::transmit_tx_queue, 
               "transmit_tx_queue", 
-              2048, 
+              10000, 
               &tx_queue, 
               30, 
               NULL);
