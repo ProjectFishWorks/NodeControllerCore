@@ -213,3 +213,8 @@ void NodeControllerCore::sendMessage(uint16_t messageID, uint64_t *data) {
   //Send the message to the tx_queue
   xQueueSend(tx_queue, &message, portMAX_DELAY);
 }
+void NodeControllerCore::sendMessage(uint16_t messageID, float *data){
+  uint64_t data64 = 0;
+  memcpy(&data64, data, 4);
+  sendMessage(messageID, &data64);
+}
