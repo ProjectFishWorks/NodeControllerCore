@@ -6,8 +6,8 @@
 #include "driver/twai.h"
 
 //CAN BUS Pins
-#define RX_PIN 6
-#define TX_PIN 7
+#define RX_PIN 7
+#define TX_PIN 6
 
 
 //Queue length for tx_queue and rx_queue
