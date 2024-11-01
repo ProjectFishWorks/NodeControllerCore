@@ -61,6 +61,7 @@ public:
     //Send a message to the CAN bus
     void sendMessage(uint16_t messageID, uint64_t *data);
     void sendMessage(uint16_t messageID, float *data);
+    void sendMessage(uint16_t messageID, uint64_t data);
 
     //Node ID of the node
     uint8_t nodeID = 0;

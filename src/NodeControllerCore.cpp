@@ -218,3 +218,7 @@ void NodeControllerCore::sendMessage(uint16_t messageID, float *data){
   memcpy(&data64, data, 4);
   sendMessage(messageID, &data64);
 }
+
+void NodeControllerCore::sendMessage(uint16_t messageID, uint64_t data) {
+  sendMessage(messageID, &data);
+}
