@@ -59,9 +59,9 @@ public:
     bool Init(std::function<void(uint8_t nodeID, uint16_t messageID, uint64_t data)> onMessageReceived, uint8_t nodeID);
 
     //Send a message to the CAN bus
-    void sendMessage(uint16_t messageID, uint64_t *data);
-    void sendMessage(uint16_t messageID, float *data);
-    void sendMessage(uint16_t messageID, uint64_t data);
+    void sendMessage(uint16_t messageID,  uint64_t *data, uint8_t logMessage = 1);
+    void sendMessage(uint16_t messageID, float *data, uint8_t logMessage = 1);
+    void sendMessage(uint16_t messageID, uint64_t data, uint8_t logMessage = 1);
 
     //Node ID of the node
     uint8_t nodeID = 0;

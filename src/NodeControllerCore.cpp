@@ -194,18 +194,20 @@ void NodeControllerCore::rx_queue_event() {
   }
 }
 
-void NodeControllerCore::sendMessage(uint16_t messageID, uint64_t *data) {
+void NodeControllerCore::sendMessage(uint16_t messageID, uint64_t *data, uint8_t logMessage) {
   //Create a CAN Bus ID with format:
   //8bit node ID, 16bit message ID, 5bit reserved
 	//NNMMMMRR
   //(NNNN)(NNNN)(MMMM)(MMMM)(MMMM)(MMMM)(RRRR)(R000)
   uint32_t id = 0; 
-  id = ((this->nodeID << 24) | (messageID << 8)) >> 3;
+  id = ((this->nodeID << 24) | (messageID << 8) | (!logMessage << 3)) >> 3;
 
   Serial.print("Sending message with Node ID: ");
   Serial.print(nodeID, HEX);
   Serial.print(" Message ID: ");
   Serial.print(messageID, HEX);
+  Serial.print(" Log Message: ");
+  Serial.print(logMessage ? "Yes" : "No");
   Serial.print(" Data: ");
   Serial.println(*data, HEX);
   //Create a CAN Bus message
@@ -213,12 +215,12 @@ void NodeControllerCore::sendMessage(uint16_t messageID, uint64_t *data) {
   //Send the message to the tx_queue
   xQueueSend(tx_queue, &message, portMAX_DELAY);
 }
-void NodeControllerCore::sendMessage(uint16_t messageID, float *data){
+void NodeControllerCore::sendMessage(uint16_t messageID, float *data, uint8_t logMessage){
   uint64_t data64 = 0;
   memcpy(&data64, data, 4);
-  sendMessage(messageID, &data64);
+  sendMessage(messageID, &data64, logMessage);
 }
 
-void NodeControllerCore::sendMessage(uint16_t messageID, uint64_t data) {
-  sendMessage(messageID, &data);
+void NodeControllerCore::sendMessage(uint16_t messageID, uint64_t data, uint8_t logMessage) {
+  sendMessage(messageID, &data, logMessage);
 }
