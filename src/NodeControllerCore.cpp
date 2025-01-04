@@ -218,7 +218,7 @@ void NodeControllerCore::rx_queue_event()
       Serial.println(data, HEX);
 
       // Receive the Unix timestamp from the base station ----------------------------------------------------------------------------------------------------
-
+/*
       if (nodeID == 0x00)
       {
         Serial.println("Node ID is Base Station");
@@ -233,7 +233,7 @@ void NodeControllerCore::rx_queue_event()
         getLocalTime(&timeinfo);
         sprintf(locTime, "%02d:%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
         Serial.println("Local Time = " + String(locTime));
-      }
+      }*/
       else
       {      
       // Call the onMessageReceived function in the device code
