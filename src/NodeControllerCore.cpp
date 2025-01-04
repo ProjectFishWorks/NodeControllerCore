@@ -1,10 +1,11 @@
 #include <NodeControllerCore.h>
 
-NodeControllerCore::NodeControllerCore(){
+NodeControllerCore::NodeControllerCore()
+{
 }
 
-
-twai_message_t NodeControllerCore::create_message(uint32_t id, uint64_t *data) {
+twai_message_t NodeControllerCore::create_message(uint32_t id, uint64_t *data)
+{
   twai_message_t message;
 
   message.extd = 1;
@@ -21,99 +22,116 @@ bool NodeControllerCore::Init(std::function<void(uint8_t nodeID, uint16_t messag
   this->nodeID = nodeID;
 
   // Initialize configuration structures using macro initializers
-  twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT((gpio_num_t)TX_PIN, 
-                                                              (gpio_num_t)RX_PIN,
-                                                              TWAI_MODE_NORMAL);
-  //TODO: deside on the timing config                                                      
+  twai_general_config_t g_config = TWAI_GENERAL_CONFIG_DEFAULT((gpio_num_t)TX_PIN,
+                                                               (gpio_num_t)RX_PIN,
+                                                               TWAI_MODE_NORMAL);
+  // TODO: deside on the timing config
   twai_timing_config_t t_config = TWAI_TIMING_CONFIG_500KBITS();
   twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
 
   // Install TWAI driver
-  if (twai_driver_install(&g_config, &t_config, &f_config) == ESP_OK) {
+  if (twai_driver_install(&g_config, &t_config, &f_config) == ESP_OK)
+  {
     Serial.println("Driver installed");
-  } else {
+  }
+  else
+  {
     Serial.println("Failed to install driver");
     return false;
   }
 
   // Start TWAI driver
-  if (twai_start() == ESP_OK) {
+  if (twai_start() == ESP_OK)
+  {
     Serial.println("Driver started");
-  } else {
+  }
+  else
+  {
     Serial.println("Failed to start driver");
     return false;
   }
 
   // Reconfigure alerts to detect frame receive, Bus-Off error and RX queue full states
-  //Not really sure what most of this means
+  // Not really sure what most of this means
   uint32_t alerts_to_enable = TWAI_ALERT_RX_DATA | TWAI_ALERT_ERR_PASS | TWAI_ALERT_BUS_ERROR | TWAI_ALERT_RX_QUEUE_FULL | TWAI_ALERT_BUS_OFF;
-  if (twai_reconfigure_alerts(alerts_to_enable, NULL) == ESP_OK) {
+  if (twai_reconfigure_alerts(alerts_to_enable, NULL) == ESP_OK)
+  {
     Serial.println("CAN Alerts reconfigured");
-  } else {
+  }
+  else
+  {
     Serial.println("Failed to reconfigure alerts");
     return false;
   }
 
-  //Create tx_queue and rx_queue
+  // Create tx_queue and rx_queue
   tx_queue = xQueueCreate(TX_QUEUE_LENGTH, sizeof(twai_message_t));
   rx_queue = xQueueCreate(RX_QUEUE_LENGTH, sizeof(twai_message_t));
 
-  //Start tasks
-  xTaskCreate(this->start_receive_to_rx_queue_task, 
-              "start_rx_task_impl", 
-              10000, //TODO: Not sure what the stack size should be for this task, 10000 is just a guess, 2048 is default but causes stack overflow crashes in base station
-              this, 
-              10, 
+  // Start tasks
+  xTaskCreate(this->start_receive_to_rx_queue_task,
+              "start_rx_task_impl",
+              10000, // TODO: Not sure what the stack size should be for this task, 10000 is just a guess, 2048 is default but causes stack overflow crashes in base station
+              this,
+              10,
               NULL);
 
-  xTaskCreate(this->start_rx_queue_event_task, 
-              "start_rx_queue_event_task_impl", 
-              10000, 
-              this, 
-              20, 
+  xTaskCreate(this->start_rx_queue_event_task,
+              "start_rx_queue_event_task_impl",
+              10000,
+              this,
+              20,
               NULL);
 
-  //Create task to transmit messages from tx_queue
-  xTaskCreate(&NodeControllerCore::transmit_tx_queue, 
-              "transmit_tx_queue", 
-              10000, 
-              &tx_queue, 
-              30, 
+  // Create task to transmit messages from tx_queue
+  xTaskCreate(&NodeControllerCore::transmit_tx_queue,
+              "transmit_tx_queue",
+              10000,
+              &tx_queue,
+              30,
               NULL);
 
-  //Return true since everything is successful
+  // Return true since everything is successful
   return true;
-
 }
 
-void NodeControllerCore::transmit_tx_queue(void *queue) {
+void NodeControllerCore::transmit_tx_queue(void *queue)
+{
 
   twai_message_t message;
 
-  while(1){
-    if(xQueueReceive(*(QueueHandle_t *) queue, &message, RX_TX_BLOCK_TIME) == pdTRUE){
-      //If there is a message in the queue, try to transmit it
-      if (twai_transmit(&message, 2000) == ESP_OK) {
+  while (1)
+  {
+    if (xQueueReceive(*(QueueHandle_t *)queue, &message, RX_TX_BLOCK_TIME) == pdTRUE)
+    {
+      // If there is a message in the queue, try to transmit it
+      if (twai_transmit(&message, 2000) == ESP_OK)
+      {
         Serial.println("Message queued for transmission");
-      } else {
+      }
+      else
+      {
         Serial.println("Failed to queue message for transmission");
         delay(1000);
+      }
     }
-    } 
   }
 }
 
-void NodeControllerCore::start_receive_to_rx_queue_task(void* _this) {
-  ((NodeControllerCore*)_this)->receive_to_rx_queue();
+void NodeControllerCore::start_receive_to_rx_queue_task(void *_this)
+{
+  ((NodeControllerCore *)_this)->receive_to_rx_queue();
 }
 
-void NodeControllerCore::receive_to_rx_queue() {
+void NodeControllerCore::receive_to_rx_queue()
+{
 
   twai_message_t message;
 
   Serial.println("Receive to rx queue task created");
 
-  while(1){
+  while (1)
+  {
     // Check if alert happened
     uint32_t alerts_triggered;
     twai_read_alerts(&alerts_triggered, 0);
@@ -121,62 +139,72 @@ void NodeControllerCore::receive_to_rx_queue() {
     twai_get_status_info(&twaistatus);
 
     // Handle alerts
-    if (alerts_triggered & TWAI_ALERT_ERR_PASS) {
+    if (alerts_triggered & TWAI_ALERT_ERR_PASS)
+    {
       Serial.println("Alert: TWAI controller has become error passive.");
     }
-    if (alerts_triggered & TWAI_ALERT_BUS_ERROR) {
+    if (alerts_triggered & TWAI_ALERT_BUS_ERROR)
+    {
       Serial.println("Alert: A (Bit, Stuff, CRC, Form, ACK) error has occurred on the bus.");
       Serial.printf("Bus error count: %d\n", twaistatus.bus_error_count);
-
     }
-    if (alerts_triggered & TWAI_ALERT_RX_QUEUE_FULL) {
+    if (alerts_triggered & TWAI_ALERT_RX_QUEUE_FULL)
+    {
       Serial.println("Alert: The RX queue is full causing a received frame to be lost.");
       Serial.printf("RX buffered: %d\t", twaistatus.msgs_to_rx);
       Serial.printf("RX missed: %d\t", twaistatus.rx_missed_count);
       Serial.printf("RX overrun %d\n", twaistatus.rx_overrun_count);
     }
 
-    if (alerts_triggered & TWAI_ALERT_BUS_OFF) {
+    if (alerts_triggered & TWAI_ALERT_BUS_OFF)
+    {
       Serial.println("Bus Off state");
     }
 
     bool receive = false;
 
-    //TODO: Not sure if this do while loop for receiving messages is the best way to do it, but seems to be working right now
-    do {
-      //Try to receive a message
+    // TODO: Not sure if this do while loop for receiving messages is the best way to do it, but seems to be working right now
+    do
+    {
+      // Try to receive a message
       receive = twai_receive(&message, RX_TX_BLOCK_TIME);
-      if (receive == ESP_OK) {
-        //If message is received succesfully, put it in the rx_queue
+      if (receive == ESP_OK)
+      {
+        // If message is received succesfully, put it in the rx_queue
         xQueueSend(this->rx_queue, &message, 0);
-      } else if(receive == ESP_ERR_INVALID_STATE || receive == ESP_ERR_INVALID_ARG) {
+      }
+      else if (receive == ESP_ERR_INVALID_STATE || receive == ESP_ERR_INVALID_ARG)
+      {
         Serial.println("Failed to receive message");
       }
-    } while (receive != ESP_ERR_TIMEOUT); //If the message is not received, try again, not sure if this is the best way to do it
+    } while (receive != ESP_ERR_TIMEOUT); // If the message is not received, try again, not sure if this is the best way to do it
   }
 }
 
-void NodeControllerCore::start_rx_queue_event_task(void* _this) {
-  ((NodeControllerCore*)_this)->rx_queue_event();
+void NodeControllerCore::start_rx_queue_event_task(void *_this)
+{
+  ((NodeControllerCore *)_this)->rx_queue_event();
 }
 
-void NodeControllerCore::rx_queue_event() {
+void NodeControllerCore::rx_queue_event()
+{
   twai_message_t message;
 
-  while(1){
-    if(xQueueReceive(rx_queue, &message, RX_TX_BLOCK_TIME) == pdTRUE)
+  while (1)
+  {
+    if (xQueueReceive(rx_queue, &message, RX_TX_BLOCK_TIME) == pdTRUE)
     {
-      //If there is a message in the rx_queue
+      // If there is a message in the rx_queue
       uint64_t data = 0;
       uint8_t nodeID = 0;
       uint16_t messageID = 0;
 
-      //Extract the data from the message data
+      // Extract the data from the message data
       memcpy(&data, message.data, 8);
 
-      //Extract the nodeID and messageID from the message identifier with format:
-      //8bit node ID, 16bit message ID, 5bit reserved
-		  //NNMMMMRR
+      // Extract the nodeID and messageID from the message identifier with format:
+      // 8bit node ID, 16bit message ID, 5bit reserved
+      // NNMMMMRR
       //(NNNN)(NNNN)(MMMM)(MMMM)(MMMM)(MMMM)(RRRR)(R000)
       nodeID = message.identifier >> 21;
       messageID = message.identifier >> 5;
@@ -189,41 +217,39 @@ void NodeControllerCore::rx_queue_event() {
       Serial.print(" Data: ");
       Serial.println(data, HEX);
 
-      //Call the onMessageReceived function in the device code
-      this->onMessageReceived(nodeID,messageID, data);
+      // Receive the Unix timestamp from the base station ----------------------------------------------------------------------------------------------------
+
+      if (nodeID == 0x00)
+      {
+        Serial.println("Node ID is Base Station");
+        unixTimeStamp = data;
+        timeval timeCurrent;
+        timeCurrent.tv_sec = unixTimeStamp;
+        settimeofday(&timeCurrent, NULL);
+        Serial.println("Unix Time Stamp = " + String(unixTimeStamp));
+        Serial.println("Current Time = " + String(timeCurrent.tv_sec));
+        struct tm timeinfo;
+        getLocalTime(&timeinfo);
+        char locTime[24];
+        sprintf(locTime, "%02d:%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+        Serial.println("Local Time = " + String(locTime));
+      }
+      else
+      {      
+      // Call the onMessageReceived function in the device code
+      this->onMessageReceived(nodeID, messageID, data);
+      }
     }
-
-// Receive the Unix timestamp from the base station ----------------------------------------------------------------------------------------------------
-
-  if (nodeID == 0x00)
-  {
-    Serial.println("Node ID is Base Station");
-    unixTimeStamp = data;
-    timeval timeCurrent;
-    timeCurrent.tv_sec = unixTimeStamp;
-    settimeofday(&timeCurrent, NULL);
-    Serial.println("Unix Time Stamp = " + String(unixTimeStamp));
-    Serial.println("Current Time = " + String(timeCurrent.tv_sec));
-    struct tm timeinfo;
-    getLocalTime(&timeinfo);
-    char locTime[24];
-    sprintf(locTime, "%02d:%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
-    Serial.println("Local Time = " + String(locTime));
-  }
-  else
-  {
-    Serial.println("Node ID is not " + String(NODE_ID));
-  }
-
   }
 }
 
-void NodeControllerCore::sendMessage(uint16_t messageID, uint64_t *data, uint8_t logMessage) {
-  //Create a CAN Bus ID with format:
-  //8bit node ID, 16bit message ID, 5bit reserved
-	//NNMMMMRR
+void NodeControllerCore::sendMessage(uint16_t messageID, uint64_t *data, uint8_t logMessage)
+{
+  // Create a CAN Bus ID with format:
+  // 8bit node ID, 16bit message ID, 5bit reserved
+  // NNMMMMRR
   //(NNNN)(NNNN)(MMMM)(MMMM)(MMMM)(MMMM)(RRRR)(R000)
-  uint32_t id = 0; 
+  uint32_t id = 0;
   id = ((this->nodeID << 24) | (messageID << 8) | (!logMessage << 3)) >> 3;
 
   Serial.print("Sending message with Node ID: ");
@@ -234,17 +260,19 @@ void NodeControllerCore::sendMessage(uint16_t messageID, uint64_t *data, uint8_t
   Serial.print(logMessage ? "Yes" : "No");
   Serial.print(" Data: ");
   Serial.println(*data, HEX);
-  //Create a CAN Bus message
+  // Create a CAN Bus message
   twai_message_t message = create_message(id, data);
-  //Send the message to the tx_queue
+  // Send the message to the tx_queue
   xQueueSend(tx_queue, &message, portMAX_DELAY);
 }
-void NodeControllerCore::sendMessage(uint16_t messageID, float *data, uint8_t logMessage){
+void NodeControllerCore::sendMessage(uint16_t messageID, float *data, uint8_t logMessage)
+{
   uint64_t data64 = 0;
   memcpy(&data64, data, 4);
   sendMessage(messageID, &data64, logMessage);
 }
 
-void NodeControllerCore::sendMessage(uint16_t messageID, uint64_t data, uint8_t logMessage) {
+void NodeControllerCore::sendMessage(uint16_t messageID, uint64_t data, uint8_t logMessage)
+{
   sendMessage(messageID, &data, logMessage);
 }
