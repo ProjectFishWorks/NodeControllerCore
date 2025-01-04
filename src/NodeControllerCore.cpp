@@ -222,7 +222,7 @@ void NodeControllerCore::rx_queue_event()
       if (nodeID == 0x00)
       {
         Serial.println("Node ID is Base Station");
-        unixTimeStamp = data;
+        uint64_t  unixTimeStamp = data;
         timeval timeCurrent;
         timeCurrent.tv_sec = unixTimeStamp;
         settimeofday(&timeCurrent, NULL);
