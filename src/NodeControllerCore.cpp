@@ -164,7 +164,8 @@ void NodeControllerCore::rx_queue_event() {
   twai_message_t message;
 
   while(1){
-    if(xQueueReceive(rx_queue, &message, RX_TX_BLOCK_TIME) == pdTRUE){
+    if(xQueueReceive(rx_queue, &message, RX_TX_BLOCK_TIME) == pdTRUE)
+    {
       //If there is a message in the rx_queue
       uint64_t data = 0;
       uint8_t nodeID = 0;
@@ -191,6 +192,29 @@ void NodeControllerCore::rx_queue_event() {
       //Call the onMessageReceived function in the device code
       this->onMessageReceived(nodeID,messageID, data);
     }
+
+// Receive the Unix timestamp from the base station ----------------------------------------------------------------------------------------------------
+
+  if (nodeID == 0x00)
+  {
+    Serial.println("Node ID is Base Station");
+    unixTimeStamp = data;
+    timeval timeCurrent;
+    timeCurrent.tv_sec = unixTimeStamp;
+    settimeofday(&timeCurrent, NULL);
+    Serial.println("Unix Time Stamp = " + String(unixTimeStamp));
+    Serial.println("Current Time = " + String(timeCurrent.tv_sec));
+    struct tm timeinfo;
+    getLocalTime(&timeinfo);
+    char locTime[24];
+    sprintf(locTime, "%02d:%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+    Serial.println("Local Time = " + String(locTime));
+  }
+  else
+  {
+    Serial.println("Node ID is not " + String(NODE_ID));
+  }
+
   }
 }
 
