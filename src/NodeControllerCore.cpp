@@ -218,26 +218,25 @@ void NodeControllerCore::rx_queue_event()
       Serial.println(data, HEX);
 
       // Receive the Unix timestamp from the base station ----------------------------------------------------------------------------------------------------
-      /*
-            if (nodeID == 0x00)
-            {
-              Serial.println("Node ID is Base Station");
-              char locTime[64];
-              uint64_t  unixTimeStamp = data;
-              timeval timeCurrent;
-              timeCurrent.tv_sec = unixTimeStamp;
-              settimeofday(&timeCurrent, NULL);
-              Serial.println("Unix Time Stamp = " + String(unixTimeStamp));
-              Serial.println("Current Time = " + String(timeCurrent.tv_sec));
-              struct tm timeinfo;
-              getLocalTime(&timeinfo);
-              sprintf(locTime, "%02d:%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
-              Serial.println("Local Time = " + String(locTime));
-            }*/
-    }
-    else
-    {
-      // Call the onMessageReceived function in the device code
+/*
+      if (nodeID == 0x00)
+      {
+        Serial.println("Node ID is Base Station");
+        unixTimeStamp = data;
+        timeval timeCurrent;
+        timeCurrent.tv_sec = unixTimeStamp;
+        settimeofday(&timeCurrent, NULL);
+        Serial.println("Unix Time Stamp = " + String(unixTimeStamp));
+        Serial.println("Current Time = " + String(timeCurrent.tv_sec));
+        struct tm timeinfo;
+        getLocalTime(&timeinfo);
+        char locTime[64];
+        sprintf(locTime, "%02d:%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+        Serial.println("Local Time = " + String(locTime));
+      }
+      else
+      {      */
+        // Call the onMessageReceived function in the device code
       this->onMessageReceived(nodeID, messageID, data);
     }
   }
