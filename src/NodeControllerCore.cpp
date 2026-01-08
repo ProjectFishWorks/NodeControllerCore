@@ -68,6 +68,19 @@ bool NodeControllerCore::Init(std::function<void(uint8_t nodeID, uint16_t messag
   tx_queue = xQueueCreate(TX_QUEUE_LENGTH, sizeof(twai_message_t));
   rx_queue = xQueueCreate(RX_QUEUE_LENGTH, sizeof(twai_message_t));
 
+  //It might be possible to get a mac address with a length of 8 bytes from the efuse instead of 6 bytes
+  //mac -- base MAC address, length: 6 bytes/8 bytes. length: 6 bytes for MAC-48 8 bytes for EUI-64(used for IEEE 802.15.4, if CONFIG_SOC_IEEE802154_SUPPORTED=y)
+  
+  unsigned char mac_base[8] = {0};
+  esp_efuse_mac_get_default(mac_base);
+
+  Serial.print("MAC Address: ");
+  for(int i=0; i<6; i++) {
+    Serial.printf("%02X", mac_base[i]);
+    if(i<5) Serial.print(":");
+  }
+  Serial.println();
+
   // Start tasks
   xTaskCreate(this->start_receive_to_rx_queue_task,
               "start_rx_task_impl",
@@ -90,11 +103,6 @@ bool NodeControllerCore::Init(std::function<void(uint8_t nodeID, uint16_t messag
               &tx_queue,
               30,
               NULL);
-
-  uint8_t mac[6];
-  esp_efuse_read_block(EFUSE_BLK3, &mac,0,6);
-
-  Serial.println("MAC address: " + String(value));
 
 
   // Return true since everything is successful
