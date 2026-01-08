@@ -101,7 +101,7 @@ bool NodeControllerCore::Init(std::function<void(uint8_t nodeID, uint16_t messag
     return false;
   }
 
-  Serial.println("MAC address: " + string(mac));
+  Serial.println("MAC address: " + String(mac));
 
 
   // Return true since everything is successful
