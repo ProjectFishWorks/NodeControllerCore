@@ -4,6 +4,7 @@
 
 #include <Arduino.h>
 #include "driver/twai.h"
+#include "esp_efuse.h"
 
 //CAN BUS Pins
 #define RX_PIN 7

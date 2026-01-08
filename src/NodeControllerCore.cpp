@@ -91,8 +91,7 @@ bool NodeControllerCore::Init(std::function<void(uint8_t nodeID, uint16_t messag
               30,
               NULL);
 
-  uint8_t mac;
-
+  uint8_t mac[6]
   uint32_t value;
   esp_efuse_read_block(ESP_EFUSE_BLK3, &value);
   mac[0] = value >> 0;
