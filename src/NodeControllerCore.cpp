@@ -92,7 +92,7 @@ bool NodeControllerCore::Init(std::function<void(uint8_t nodeID, uint16_t messag
               NULL);
 
   uint8_t mac[6];
-  esp_efuse_read_block(EFUSE_BLK3, &value,0,6);
+  esp_efuse_read_block(EFUSE_BLK3, &mac,0,6);
 
   Serial.println("MAC address: " + String(value));
 
