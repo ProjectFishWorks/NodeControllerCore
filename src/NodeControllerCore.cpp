@@ -93,7 +93,7 @@ bool NodeControllerCore::Init(std::function<void(uint8_t nodeID, uint16_t messag
 
   uint8_t mac;
 
-  if(esp_efuse_mac_get_default(&mac) == ESP_OK){
+  if(esp_base_mac_addr_get(&mac) == ESP_OK){
     Serial.println("Got mac address succesfully");
   }
   else{
