@@ -277,6 +277,41 @@ void NodeControllerCore::rx_queue_event()
       Serial.print(" Data: ");
       Serial.println(data, HEX);
 
+
+      //Paring hardware ID message
+      if(messageID == PARING_HARDWARE_ID_MESSAGE_ID){
+        Serial.print("Paring Hardware ID received: ");
+        Serial.println(data, HEX);
+        if(data == hardwareID){
+          Serial.println("Hardware ID match");
+
+          if(nodeID != this->nodeID){
+            Serial.print("Updating Node ID to: ");
+            Serial.println(nodeID);
+
+            //Update node ID in memory
+            this->nodeID = nodeID;
+
+            //Update node ID in config file
+            File nodeIDFile = LittleFS.open(NODE_ID_CONFIG_FILE, FILE_WRITE);
+            if (!nodeIDFile)
+            {
+              Serial.println("Failed to open node ID config file for writing");
+            }
+            else
+            {
+              nodeIDFile.println(this->nodeID);
+              nodeIDFile.close();
+              Serial.println("Node ID config file updated");
+            }
+          }
+          else{
+            Serial.println("Node ID is already set to this value, no update needed");
+          }
+
+        }
+      }
+
       // Receive the Unix timestamp from the base station ----------------------------------------------------------------------------------------------------
 /*
       if (nodeID == 0x00)
