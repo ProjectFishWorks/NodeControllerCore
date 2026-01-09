@@ -68,17 +68,20 @@ bool NodeControllerCore::Init(std::function<void(uint8_t nodeID, uint16_t messag
   tx_queue = xQueueCreate(TX_QUEUE_LENGTH, sizeof(twai_message_t));
   rx_queue = xQueueCreate(RX_QUEUE_LENGTH, sizeof(twai_message_t));
 
+  //Paring
+  Serial.println("Node Controller Paring...");
+
+  //Get Hardware ID from MAC address
   //It might be possible to get a mac address with a length of 8 bytes from the efuse instead of 6 bytes
   //mac -- base MAC address, length: 6 bytes/8 bytes. length: 6 bytes for MAC-48 8 bytes for EUI-64(used for IEEE 802.15.4, if CONFIG_SOC_IEEE802154_SUPPORTED=y)
-  
   unsigned char mac_base[8] = {0};
+
   esp_efuse_mac_get_default(mac_base);
 
-  Serial.print("MAC Address: ");
-  for(int i=0; i<6; i++) {
-    Serial.printf("%02X", mac_base[i]);
-    if(i<5) Serial.print(":");
-  }
+  memcpy(&hardwareID, mac_base, 8);
+
+  Serial.print("Hardware ID: ");
+  Serial.print(hardwareID, HEX);
   Serial.println();
 
   // Start tasks
@@ -103,7 +106,11 @@ bool NodeControllerCore::Init(std::function<void(uint8_t nodeID, uint16_t messag
               &tx_queue,
               30,
               NULL);
+  
+  //Wait a bit to make sure tasks are started correctly TODO: is there a better way to do this?
+  delay(100);
 
+  sendMessage(PARING_HARDWARE_ID_MESSAGE_ID, &hardwareID, 0); // Send hardware ID
 
   // Return true since everything is successful
   return true;
@@ -112,23 +119,22 @@ bool NodeControllerCore::Init(std::function<void(uint8_t nodeID, uint16_t messag
 void NodeControllerCore::transmit_tx_queue(void *queue)
 {
 
-  twai_message_t message;
-
   while (1)
   {
-    if (xQueueReceive(*(QueueHandle_t *)queue, &message, RX_TX_BLOCK_TIME) == pdTRUE)
+    twai_message_t *message = new twai_message_t;
+    if (xQueueReceive(*(QueueHandle_t *)queue, message, RX_TX_BLOCK_TIME) == pdTRUE)
     {
       // If there is a message in the queue, try to transmit it
-      if (twai_transmit(&message, 2000) == ESP_OK)
+      if (twai_transmit(message, 2000) == ESP_OK)
       {
         Serial.println("Message queued for transmission");
       }
       else
       {
         Serial.println("Failed to queue message for transmission");
-        delay(1000);
       }
     }
+    delete message;
   }
 }
 

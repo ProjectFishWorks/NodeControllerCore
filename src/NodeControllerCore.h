@@ -18,6 +18,9 @@
 //Time to wait for a message to be received TODO: not sure what this does, set to one tick=1ms right now
 #define RX_TX_BLOCK_TIME (1 * portTICK_PERIOD_MS)
 
+//Paring Message IDs
+#define PARING_HARDWARE_ID_MESSAGE_ID 0x6D0 //1744
+
 class NodeControllerCore
 {
 private:
@@ -45,6 +48,8 @@ private:
 
     //Queue to receive messages
     QueueHandle_t rx_queue;
+
+    uint64_t hardwareID = 0;
 
     //Function to call when a message is received
     std::function<void(uint8_t nodeID, uint16_t messageID, uint64_t data)> onMessageReceived;
