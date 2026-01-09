@@ -29,6 +29,14 @@ bool NodeControllerCore::Init(std::function<void(uint8_t nodeID, uint16_t messag
   twai_timing_config_t t_config = TWAI_TIMING_CONFIG_500KBITS();
   twai_filter_config_t f_config = TWAI_FILTER_CONFIG_ACCEPT_ALL();
 
+  // Setup the SD Card and File System
+  if (!LittleFS.begin(1))
+  {
+    Serial.println("LittleFS Mount Failed");
+    return false;
+  }
+  Serial.println("LittleFS Mount Successful");
+
   // Install TWAI driver
   if (twai_driver_install(&g_config, &t_config, &f_config) == ESP_OK)
   {
@@ -83,6 +91,38 @@ bool NodeControllerCore::Init(std::function<void(uint8_t nodeID, uint16_t messag
   Serial.print("Hardware ID: ");
   Serial.print(hardwareID, HEX);
   Serial.println();
+
+  //Check for node ID configuration file
+  if (LittleFS.exists(NODE_ID_CONFIG_FILE))
+  {
+    //If file exists, read node ID from file
+    File nodeIDFile = LittleFS.open(NODE_ID_CONFIG_FILE, FILE_READ);
+    if (!nodeIDFile)
+    {
+      Serial.println("Failed to open node ID config file");
+      return false;
+    }
+    String nodeIDString = nodeIDFile.readStringUntil('\n');
+    this->nodeID = (uint8_t)nodeIDString.toInt();
+    nodeIDFile.close();
+    Serial.print("Node ID read from config file: ");
+    Serial.println(this->nodeID);
+  }
+  else
+  {
+    Serial.println("Node ID config file not found, using default node ID");
+    File nodeIDFile = LittleFS.open(NODE_ID_CONFIG_FILE, FILE_WRITE);
+    if (!nodeIDFile)
+    {
+      Serial.println("Failed to create node ID config file");
+      return false;
+    }
+    nodeIDFile.println(this->nodeID);
+    nodeIDFile.close();
+    Serial.print("Node ID written to config file: ");
+    Serial.println(this->nodeID);
+  }
+
 
   // Start tasks
   xTaskCreate(this->start_receive_to_rx_queue_task,

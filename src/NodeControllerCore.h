@@ -5,6 +5,8 @@
 #include <Arduino.h>
 #include "driver/twai.h"
 #include "esp_efuse.h"
+#include "FS.h"
+#include <LittleFS.h>
 
 //CAN BUS Pins
 #define RX_PIN 7
@@ -20,6 +22,8 @@
 
 //Paring Message IDs
 #define PARING_HARDWARE_ID_MESSAGE_ID 0x6D0 //1744
+
+#define NODE_ID_CONFIG_FILE "/node.ID"
 
 class NodeControllerCore
 {
