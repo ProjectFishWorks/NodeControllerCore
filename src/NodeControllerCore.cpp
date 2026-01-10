@@ -123,7 +123,6 @@ bool NodeControllerCore::Init(std::function<void(uint8_t nodeID, uint16_t messag
     Serial.println(this->nodeID);
   }
 
-
   // Start tasks
   xTaskCreate(this->start_receive_to_rx_queue_task,
               "start_rx_task_impl",
@@ -152,8 +151,21 @@ bool NodeControllerCore::Init(std::function<void(uint8_t nodeID, uint16_t messag
 
   sendMessage(PARING_HARDWARE_ID_MESSAGE_ID, &hardwareID, 0); // Send hardware ID
 
+  //Wait until paring is complete
+  Serial.println("Waiting for paring...");
+  while (paringMode)
+  {
+    delay(100);
+  }
+  Serial.println("Paring complete");
+
   // Return true since everything is successful
   return true;
+}
+
+void NodeControllerCore::readyForData(uint8_t readyForData)
+{
+  this->sendMessage(READY_FOR_DATA_MESSAGE_ID, (uint64_t)readyForData, 0);
 }
 
 void NodeControllerCore::transmit_tx_queue(void *queue)
@@ -308,6 +320,9 @@ void NodeControllerCore::rx_queue_event()
           else{
             Serial.println("Node ID is already set to this value, no update needed");
           }
+
+          //Exit paring mode
+          paringMode = 0;
 
         }
       }

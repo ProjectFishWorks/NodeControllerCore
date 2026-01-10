@@ -22,6 +22,7 @@
 
 //Paring Message IDs
 #define PARING_HARDWARE_ID_MESSAGE_ID 0x6D0 //1744
+#define READY_FOR_DATA_MESSAGE_ID 0x6D1 //1745
 
 #define NODE_ID_CONFIG_FILE "/node.ID"
 
@@ -53,7 +54,9 @@ private:
     //Queue to receive messages
     QueueHandle_t rx_queue;
 
+    //Paring
     uint64_t hardwareID = 0;
+    uint8_t paringMode = 1; //1=enabled, 0=disabled
 
     //Function to call when a message is received
     std::function<void(uint8_t nodeID, uint16_t messageID, uint64_t data)> onMessageReceived;
@@ -67,6 +70,8 @@ public:
 
     //Initialize various the node controller core
     bool Init(std::function<void(uint8_t nodeID, uint16_t messageID, uint64_t data)> onMessageReceived, uint8_t nodeID);
+
+    void readyForData(uint8_t readyForData);
 
     //Send a message to the CAN bus
     void sendMessage(uint16_t messageID,  uint64_t *data, uint8_t logMessage = 1);
