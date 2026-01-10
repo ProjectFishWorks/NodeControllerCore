@@ -69,7 +69,7 @@ public:
     NodeControllerCore();
 
     //Initialize various the node controller core
-    bool Init(std::function<void(uint8_t nodeID, uint16_t messageID, uint64_t data)> onMessageReceived, uint8_t nodeID);
+    bool Init(std::function<void(uint8_t nodeID, uint16_t messageID, uint64_t data)> onMessageReceived);
 
     void readyForData(uint8_t readyForData);
 
@@ -79,6 +79,6 @@ public:
     void sendMessage(uint16_t messageID, uint64_t data, uint8_t logMessage = 1);
 
     //Node ID of the node
-    uint8_t nodeID = 0;
+    uint8_t nodeID = 1;
 
 };
